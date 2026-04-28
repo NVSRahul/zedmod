@@ -88,9 +88,8 @@ jobs:
 
       - name: Pack raw app bundle
         run: |
-          tar -C target/aarch64-apple-darwin/release/dmg \
-            -czf target/aarch64-apple-darwin/release/Zed-aarch64.app.tar.gz \
-            Zed.app
+          cd target/aarch64-apple-darwin/release/dmg
+          tar -czf ../Zed-aarch64.app.tar.gz *.app
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4

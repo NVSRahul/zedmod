@@ -60,11 +60,13 @@ case "$artifact_path" in
     mkdir -p "$mount_dir"
     hdiutil attach -quiet "$artifact_path" -mountpoint "$mount_dir"
     mounted_dmg=true
-    install_app "$mount_dir/Zed.app"
+    app_path=$(find "$mount_dir" -maxdepth 1 -name "*.app" -print -quit)
+    install_app "$app_path"
     ;;
   *.app.tar.gz)
     tar -xzf "$artifact_path" -C "$tmp_dir"
-    install_app "$tmp_dir/Zed.app"
+    app_path=$(find "$tmp_dir" -maxdepth 1 -name "*.app" -print -quit)
+    install_app "$app_path"
     ;;
   *.app)
     install_app "$artifact_path"
