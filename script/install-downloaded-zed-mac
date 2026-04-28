@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage:
+  script/install-downloaded-zed-mac /path/to/Zed-aarch64.dmg
+  script/install-downloaded-zed-mac /path/to/Zed-aarch64.app.tar.gz
+  script/install-downloaded-zed-mac /path/to/Zed.app
+
+Installs a downloaded custom Zed build into /Applications/Zed.app.
+If /Applications is not writable, re-run this command with sudo.
+EOF
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+  exit 1
+fi
+
+artifact_path="$1"
+destination="/Applications/Zed.app"
+tmp_dir="$(mktemp -d)"
+mounted_dmg=false
+mount_dir="${tmp_dir}/mount"
+
+cleanup() {
+  if [[ "$mounted_dmg" == "true" ]]; then
+    hdiutil detach "$mount_dir" -quiet || true
+  fi
+  rm -rf "$tmp_dir"
+}
+
+trap cleanup EXIT
+
+if [[ ! -e "$artifact_path" ]]; then
+  echo "Artifact not found: $artifact_path" >&2
+  exit 1
+fi
+
+if [[ ! -w /Applications && ! -w "$destination" ]]; then
+  echo "/Applications is not writable. Re-run with sudo." >&2
+  exit 1
+fi
+
+install_app() {
+  local source_app="$1"
+
+  rm -rf "$destination"
+  ditto "$source_app" "$destination"
+  xattr -dr com.apple.quarantine "$destination" || true
+
+  echo "Installed custom Zed to $destination"
+  open "$destination"
+}
+
+case "$artifact_path" in
+  *.dmg)
+    mkdir -p "$mount_dir"
+    hdiutil attach -quiet "$artifact_path" -mountpoint "$mount_dir"
+    mounted_dmg=true
+    install_app "$mount_dir/Zed.app"
+    ;;
+  *.app.tar.gz)
+    tar -xzf "$artifact_path" -C "$tmp_dir"
+    install_app "$tmp_dir/Zed.app"
+    ;;
+  *.app)
+    install_app "$artifact_path"
+    ;;
+  *)
+    echo "Unsupported file type: $artifact_path" >&2
+    usage
+    exit 1
+    ;;
+esac

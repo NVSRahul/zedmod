@@ -1,0 +1,50 @@
+name: sync_upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout smooth-cursor branch
+        uses: actions/checkout@v4
+        with:
+          ref: smooth-cursor
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream Zed
+        run: |
+          git remote add upstream https://github.com/zed-industries/zed.git
+          git fetch upstream main
+
+      - name: Merge upstream into working tree
+        run: |
+          git merge --no-ff --no-commit upstream/main
+
+      - name: Create sync pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: auto/upstream-sync
+          delete-branch: true
+          commit-message: "chore: sync upstream zed"
+          title: "chore: sync upstream zed"
+          body: |
+            Automated upstream sync from `zed-industries/zed` `main` into `smooth-cursor`.
+
+            If this PR exists, it means the merge applied cleanly enough for review.
+            If the workflow fails before this PR is created, there is a merge conflict that needs manual resolution.
+          base: smooth-cursor

@@ -1,0 +1,111 @@
+name: custom_zed_macos_aarch64
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - smooth-cursor
+    paths:
+      - ".github/workflows/custom-zed-macos-aarch64.yml"
+      - ".cargo/**"
+      - "assets/settings/default.json"
+      - "crates/editor/**"
+      - "crates/settings/**"
+      - "crates/settings_content/**"
+      - "crates/settings_ui/**"
+      - "script/bundle-mac"
+      - "script/install-downloaded-zed-mac"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+  pull_request:
+    branches:
+      - main
+      - smooth-cursor
+    paths:
+      - ".github/workflows/custom-zed-macos-aarch64.yml"
+      - ".cargo/**"
+      - "assets/settings/default.json"
+      - "crates/editor/**"
+      - "crates/settings/**"
+      - "crates/settings_content/**"
+      - "crates/settings_ui/**"
+      - "script/bundle-mac"
+      - "script/install-downloaded-zed-mac"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+
+concurrency:
+  group: custom-zed-macos-aarch64-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  bundle-macos:
+    runs-on: macos-15
+    timeout-minutes: 90
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Set up CI cargo config
+        run: |
+          mkdir -p ./../.cargo
+          cp ./.cargo/ci-config.toml ./../.cargo/config.toml
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.94.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+          workspaces: |
+            . -> target
+
+      - name: Build macOS release bundle
+        run: ./script/bundle-mac aarch64-apple-darwin
+
+      - name: Pack raw app bundle
+        run: |
+          tar -C target/aarch64-apple-darwin/release/dmg \
+            -czf target/aarch64-apple-darwin/release/Zed-aarch64.app.tar.gz \
+            Zed.app
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zed-aarch64.dmg
+          path: target/aarch64-apple-darwin/release/Zed-aarch64.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload app bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zed-aarch64.app.tar.gz
+          path: target/aarch64-apple-darwin/release/Zed-aarch64.app.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Clean up CI cargo config
+        if: always()
+        run: rm -rf ./../.cargo
