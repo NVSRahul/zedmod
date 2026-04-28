@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout smooth-cursor branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: smooth-cursor
           fetch-depth: 0
@@ -61,7 +61,7 @@ jobs:
           echo "path=$body_file" >> "$GITHUB_OUTPUT"
 
       - name: Create sync pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: auto/upstream-sync
           delete-branch: true
