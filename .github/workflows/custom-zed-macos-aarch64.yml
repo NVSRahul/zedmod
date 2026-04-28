@@ -50,7 +50,7 @@ env:
 jobs:
   bundle-macos:
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 300
     permissions:
       contents: read
 
