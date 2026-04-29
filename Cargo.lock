@@ -9660,7 +9660,6 @@ dependencies = [
  "ui",
  "ui_input",
  "util",
- "vercel",
  "x_ai",
 ]
 
@@ -11898,6 +11897,7 @@ dependencies = [
  "futures 0.3.32",
  "google_ai",
  "http_client",
+ "language_model_core",
  "schemars 1.0.4",
  "serde",
  "serde_json",
@@ -19472,16 +19472,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
-name = "vercel"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "schemars 1.0.4",
- "serde",
- "strum 0.27.2",
-]
-
-[[package]]
 name = "version-compare"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -22386,7 +22376,7 @@ dependencies = [
 
 [[package]]
 name = "zed"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "acp_thread",
  "acp_tools",

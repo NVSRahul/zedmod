@@ -6878,7 +6878,9 @@ impl EditorElement {
                             .display_snapshot
                             .display_point_to_anchor(point_for_position.nearest_valid, Bias::Left);
                         editor.change_selections(
-                            SelectionEffects::scroll(Autoscroll::top_relative(line_index)),
+                            SelectionEffects::scroll(Autoscroll::top_relative(
+                                line_index as ScrollOffset,
+                            )),
                             window,
                             cx,
                             |selections| {
