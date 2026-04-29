@@ -388,3 +388,29 @@ Why:
 If upstream changes a file you customized, read the new upstream file first, then adapt the patch carefully.
 
 Do not assume old line numbers, old function boundaries, or old rendering behavior still match.
+
+## Custom Modifications (Kitty Smooth Cursor Port)
+
+**Goal:** Emulated Kitty Terminal's elastic, 4-corner exponential decay cursor comet trail natively within Zed's editor.
+
+### Modified Files:
+*   `crates/editor/src/element.rs`
+    *   Replaced Zed's default `smooth_damp` and $O(N \log N)$ convex hull trail physics with Kitty's highly performant 4-corner dot-product algorithm.
+    *   Removed `SMOOTH_CURSOR_RESET_DISTANCE_PX` and `SMOOTH_CURSOR_STALE_RESET` snapping limits so the tail traces a beautiful unbroken path during fast jumps (`gg`, `Shift+G`).
+    *   Implemented `trail_min_distance` (mimicking `cursor_trail_start_threshold`).
+    *   Adjusted alpha calculations (`trail_opacity`) so the tail doesn't turn into a thin invisible line when stretched rapidly diagonally across the screen.
+
+*   `crates/settings_content/src/editor.rs`
+    *   Added new JSON schema mapping for the settings.
+    *   Introduced `leading_smooth_time` to control the fast decay (snap) of the cursor's leading edge.
+    *   Repurposed `smooth_time` to dictate the slow decay (stretchy drag) of the cursor's trailing edge.
+    *   Removed `max_speed` (no longer needed by the exponential math).
+    *   Added `trail_min_distance`.
+
+*   `crates/editor/src/editor_settings.rs`
+    *   Removed the obsolete `max_speed` configuration parsing.
+    *   Configured defaults to match Kitty's behavior but with Zed's aesthetic timings (`smooth_time: 80`, `leading_smooth_time: 30`).
+    *   Mapped JSON `SmoothCursorContent` to `SmoothCursorSettings`.
+
+### Created Files:
+*   No new files were created for this specific cursor port. The entire logic was embedded natively into Zed's existing rendering and settings infrastructure for maximum performance and stability.
