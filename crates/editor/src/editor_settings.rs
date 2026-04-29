@@ -88,7 +88,6 @@ pub struct SmoothCursorSettings {
     pub enabled: bool,
     pub trail: bool,
     pub smooth_time: Duration,
-    pub max_speed: f32,
     pub trail_opacity: f32,
     pub trail_min_distance: f32,
 }
@@ -99,7 +98,6 @@ impl Default for SmoothCursorSettings {
             enabled: true,
             trail: true,
             smooth_time: Duration::from_millis(55),
-            max_speed: 4500.0,
             trail_opacity: 0.16,
             trail_min_distance: 1.5,
         }
@@ -245,9 +243,6 @@ impl Settings for EditorSettings {
                         })
                         .0,
                 ),
-                max_speed: smooth_cursor
-                    .max_speed
-                    .unwrap_or(smooth_cursor_defaults.max_speed),
                 trail_opacity: smooth_cursor
                     .trail_opacity
                     .unwrap_or(smooth_cursor_defaults.trail_opacity),
