@@ -1098,7 +1098,7 @@ fn appearance_page() -> SettingsPage {
         ]
     }
 
-    fn cursor_section() -> [SettingsPageItem; 9] {
+    fn cursor_section() -> [SettingsPageItem; 11] {
         [
             SettingsPageItem::SectionHeader("Cursor"),
             SettingsPageItem::SettingItem(SettingItem {
@@ -1201,7 +1201,7 @@ fn appearance_page() -> SettingsPage {
             }),
             SettingsPageItem::SettingItem(SettingItem {
                 title: "Cursor Smooth Time",
-                description: "Milliseconds for the animated cursor to settle.",
+                description: "Milliseconds for the trailing edge of the cursor to settle.",
                 field: Box::new(SettingField {
                     json_path: Some("smooth_cursor.smooth_time"),
                     pick: |settings_content| {
@@ -1217,6 +1217,29 @@ fn appearance_page() -> SettingsPage {
                             .smooth_cursor
                             .get_or_insert_default()
                             .smooth_time = value;
+                    },
+                }),
+                metadata: None,
+                files: USER,
+            }),
+            SettingsPageItem::SettingItem(SettingItem {
+                title: "Cursor Leading Time",
+                description: "Milliseconds for the leading edge of the cursor to settle.",
+                field: Box::new(SettingField {
+                    json_path: Some("smooth_cursor.leading_smooth_time"),
+                    pick: |settings_content| {
+                        settings_content
+                            .editor
+                            .smooth_cursor
+                            .as_ref()
+                            .and_then(|smooth_cursor| smooth_cursor.leading_smooth_time.as_ref())
+                    },
+                    write: |settings_content, value, _| {
+                        settings_content
+                            .editor
+                            .smooth_cursor
+                            .get_or_insert_default()
+                            .leading_smooth_time = value;
                     },
                 }),
                 metadata: None,
@@ -1240,6 +1263,29 @@ fn appearance_page() -> SettingsPage {
                             .smooth_cursor
                             .get_or_insert_default()
                             .trail_opacity = value;
+                    },
+                }),
+                metadata: None,
+                files: USER,
+            }),
+            SettingsPageItem::SettingItem(SettingItem {
+                title: "Cursor Trail Distance",
+                description: "Minimum cursor movement distance before drawing the smear trail.",
+                field: Box::new(SettingField {
+                    json_path: Some("smooth_cursor.trail_min_distance"),
+                    pick: |settings_content| {
+                        settings_content
+                            .editor
+                            .smooth_cursor
+                            .as_ref()
+                            .and_then(|smooth_cursor| smooth_cursor.trail_min_distance.as_ref())
+                    },
+                    write: |settings_content, value, _| {
+                        settings_content
+                            .editor
+                            .smooth_cursor
+                            .get_or_insert_default()
+                            .trail_min_distance = value;
                     },
                 }),
                 metadata: None,

@@ -47,6 +47,11 @@ fi
 install_app() {
   local source_app="$1"
 
+  if [[ -z "${source_app}" || ! -d "${source_app}" ]]; then
+    echo "No .app bundle found in artifact." >&2
+    exit 1
+  fi
+
   rm -rf "$destination"
   ditto "$source_app" "$destination"
   xattr -dr com.apple.quarantine "$destination" || true

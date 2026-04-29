@@ -41,6 +41,7 @@ mod rust_analyzer_ext;
 pub mod scroll;
 mod selections_collection;
 pub mod semantic_tokens;
+mod smooth_cursor;
 mod split;
 pub mod split_editor_view;
 
@@ -110,7 +111,7 @@ use edit_prediction_types::{
     EditPredictionGranularity, SuggestionDisplayType,
 };
 use editor_settings::{GoToDefinitionFallback, Minimap as MinimapSettings};
-use element::{LineWithInvisibles, PositionMap, SmoothCursorAnimationState, layout_line};
+use element::{LineWithInvisibles, PositionMap, layout_line};
 use futures::{
     FutureExt,
     future::{self, Shared},
@@ -191,6 +192,7 @@ use settings::{
     update_settings_file,
 };
 use smallvec::{SmallVec, smallvec};
+use smooth_cursor::SmoothCursorAnimationState;
 use snippet::Snippet;
 use std::{
     any::{Any, TypeId},

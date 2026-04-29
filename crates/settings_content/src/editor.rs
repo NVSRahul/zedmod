@@ -280,7 +280,7 @@ pub struct SmoothCursorContent {
 
     /// How long the trailing edge of the cursor animation takes to settle, in milliseconds.
     ///
-    /// Default: 80
+    /// Default: 55
     pub smooth_time: Option<DelayMs>,
 
     /// How long the leading edge of the cursor animation takes to settle, in milliseconds.
@@ -296,7 +296,7 @@ pub struct SmoothCursorContent {
 
     /// Minimum distance in pixels before drawing the smear trail.
     ///
-    /// Default: 0.0
+    /// Default: 1.5
     pub trail_min_distance: Option<f32>,
 }
 

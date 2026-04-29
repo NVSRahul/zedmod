@@ -236,10 +236,10 @@
     "enabled": true,
     // Whether to draw a smear trail behind the animated local cursor.
     "trail": true,
-    // How long the cursor animation takes to settle, in milliseconds.
+    // How long the trailing edge of the cursor animation takes to settle, in milliseconds.
     "smooth_time": 55,
-    // Maximum cursor travel speed, measured in pixels per second.
-    "max_speed": 4500.0,
+    // How long the leading edge of the cursor animation takes to settle, in milliseconds.
+    "leading_smooth_time": 30,
     // Opacity of the smear trail.
     "trail_opacity": 0.16,
     // Minimum distance in pixels before drawing the smear trail.
