@@ -414,3 +414,7 @@ Do not assume old line numbers, old function boundaries, or old rendering behavi
 
 ### Created Files:
 *   No new files were created for this specific cursor port. The entire logic was embedded natively into Zed's existing rendering and settings infrastructure for maximum performance and stability.
+
+### Automation Scripts Created:
+*   `script/kitty_cursor_patch/patch_kitty.py`, `patch_element.py`, `patch_physics_fixes.py`, `patch_settings.py`
+    *   Custom Python automation scripts built to accurately parse and rewrite Zed's complex Rust AST without breaking syntax. These were used to inject Kitty's cursor dot-product math into Zed's rendering pipeline.
