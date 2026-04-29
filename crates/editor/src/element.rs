@@ -111,8 +111,6 @@ struct LineHighlightSpec {
 }
 
 const SMOOTH_CURSOR_SETTLE_DISTANCE_PX: f32 = 0.35;
-const SMOOTH_CURSOR_STALE_RESET: Duration = Duration::from_millis(180);
-const SMOOTH_CURSOR_RESET_DISTANCE_PX: f32 = 1400.0;
 
 #[derive(Clone, Debug)]
 pub(crate) struct SmoothCursorAnimationState {
@@ -169,23 +167,12 @@ impl SmoothCursorAnimationState {
         display_point: DisplayPoint,
         bounds: Bounds<Pixels>,
         shape: CursorShape,
-        now: Instant,
+        _now: Instant,
     ) {
-        let stale = now.duration_since(self.last_frame) > SMOOTH_CURSOR_STALE_RESET;
-        let target_delta = point(
-            bounds.left() - self.target_bounds.left(),
-            bounds.top() - self.target_bounds.top(),
-        );
-        let reset_distance = ((target_delta.x.as_f32() * target_delta.x.as_f32())
-            + (target_delta.y.as_f32() * target_delta.y.as_f32()))
-        .sqrt();
-        let height_delta = (bounds.size.height - self.target_bounds.size.height).as_f32().abs();
-
-        if stale || reset_distance > SMOOTH_CURSOR_RESET_DISTANCE_PX || height_delta > 1.0 {
-            self.snap_to(display_point, bounds, shape, now);
-            return;
-        }
-
+        // We removed the stale and distance snapping checks here!
+        // This ensures the cursor ALWAYS flies from its last known position
+        // to the new position, even on `gg` (top of file) or `Shift+G` (bottom of file).
+        
         self.target_display_point = display_point;
         self.target_bounds = bounds;
         self.shape = shape;
@@ -240,9 +227,12 @@ impl SmoothCursorAnimationState {
             let min_dot = dot.iter().copied().fold(f32::MAX, f32::min);
             let max_dot = dot.iter().copied().fold(f32::MIN, f32::max);
 
-            // Kitty's default exponential ease parameters
-            let decay_fast = 0.03;
-            let decay_slow = settings.smooth_time.as_secs_f32().max(0.04);
+            // Kitty's default exponential ease parameters.
+            // Fast decay is the leading edge (snaps instantly).
+            // Slow decay is the trailing edge (stretches elastically).
+            let decay_fast = settings.leading_smooth_time.as_secs_f32().clamp(0.01, 2.0);
+            // 300ms in settings = 0.3 seconds. We clamp it so it never goes to 0 and breaks math.
+            let decay_slow = settings.smooth_time.as_secs_f32().clamp(0.04, 2.0);
 
             for i in 0..4 {
                 if dx[i] == 0.0 && dy[i] == 0.0 {
@@ -271,8 +261,11 @@ impl SmoothCursorAnimationState {
                 .fold(0.0f32, f32::max);
 
             if max_dist > settings.trail_min_distance {
-                let trail_alpha = settings.trail_opacity.clamp(0.0, 1.0)
-                    * (max_dist / self.target_bounds.size.height.as_f32().max(1.0)).min(1.0);
+                // Ensure the tail stays fully visible during fast motion.
+                // We only start fading the alpha when it's extremely close to stopping (within half a line height).
+                let visibility_ratio = (max_dist / (self.target_bounds.size.height.as_f32() * 0.5)).clamp(0.0, 1.0);
+                let trail_alpha = settings.trail_opacity.clamp(0.0, 1.0) * visibility_ratio;
+                
                 Some(SmoothCursorTrail {
                     points: self.corners,
                     color: color.opacity(trail_alpha),

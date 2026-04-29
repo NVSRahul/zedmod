@@ -88,6 +88,7 @@ pub struct SmoothCursorSettings {
     pub enabled: bool,
     pub trail: bool,
     pub smooth_time: Duration,
+    pub leading_smooth_time: Duration,
     pub trail_opacity: f32,
     pub trail_min_distance: f32,
 }
@@ -97,9 +98,10 @@ impl Default for SmoothCursorSettings {
         Self {
             enabled: true,
             trail: true,
-            smooth_time: Duration::from_millis(55),
+            smooth_time: Duration::from_millis(80),
+            leading_smooth_time: Duration::from_millis(30),
             trail_opacity: 0.16,
-            trail_min_distance: 1.5,
+            trail_min_distance: 0.0,
         }
     }
 }
@@ -240,6 +242,14 @@ impl Settings for EditorSettings {
                         .smooth_time
                         .unwrap_or_else(|| {
                             DelayMs::from(smooth_cursor_defaults.smooth_time.as_millis() as u64)
+                        })
+                        .0,
+                ),
+                leading_smooth_time: Duration::from_millis(
+                    smooth_cursor
+                        .leading_smooth_time
+                        .unwrap_or_else(|| {
+                            DelayMs::from(smooth_cursor_defaults.leading_smooth_time.as_millis() as u64)
                         })
                         .0,
                 ),

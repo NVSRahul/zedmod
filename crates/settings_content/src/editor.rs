@@ -278,15 +278,15 @@ pub struct SmoothCursorContent {
     /// Default: true
     pub trail: Option<bool>,
 
-    /// How long the cursor animation takes to settle, in milliseconds.
+    /// How long the trailing edge of the cursor animation takes to settle, in milliseconds.
     ///
-    /// Default: 55
+    /// Default: 80
     pub smooth_time: Option<DelayMs>,
 
-    /// Maximum cursor travel speed, measured in pixels per second.
+    /// How long the leading edge of the cursor animation takes to settle, in milliseconds.
     ///
-    /// Default: 4500
-    pub max_speed: Option<f32>,
+    /// Default: 30
+    pub leading_smooth_time: Option<DelayMs>,
 
     /// Opacity of the smear trail.
     ///
@@ -296,7 +296,7 @@ pub struct SmoothCursorContent {
 
     /// Minimum distance in pixels before drawing the smear trail.
     ///
-    /// Default: 1.5
+    /// Default: 0.0
     pub trail_min_distance: Option<f32>,
 }
 
