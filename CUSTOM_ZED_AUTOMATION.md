@@ -1,81 +1,118 @@
-# Custom Zed Smooth Cursor Notes
+# Custom Zed Smooth Cursor
 
-This repository is a custom Zed fork with a native smooth cursor integrated
-directly into Zed's Rust editor renderer.
+This repo is a private Zed fork with one main custom feature: a native smooth
+cursor with an optional Kitty-style smear trail.
 
-## Important Summary
+The goal is simple:
 
-- No new crate was created.
-- The smooth cursor now lives in one dedicated internal module:
-  `crates/editor/src/smooth_cursor.rs`
-- The rest of the editor changes are thin integration hooks.
-- Kitty-inspired reference material is archival only and is not part of the
-  runtime build.
+- keep `main` as clean upstream Zed code
+- keep all custom cursor work on `smooth-cursor`
+- make future Zed updates easy to compare and maintain
 
-## Goal
+## Branches
 
-Provide a Neovim-like smooth cursor inside Zed with optional Kitty-style smear
-behavior, without depending on plugin hooks that Zed does not currently expose.
+Use the branches like this:
 
-## Active Runtime Files
+- `main`
+  Clean Zed upstream code. This should match `zed-industries/zed` `main`.
 
-These are the only files you should expect to touch for the feature itself:
+- `smooth-cursor`
+  Your custom branch. This contains upstream Zed plus the smooth cursor changes,
+  build workflows, install helper, and this maintenance note.
 
-1. `crates/editor/src/smooth_cursor.rs`
-   - Main cursor animation engine
-   - Kitty-style 4-corner exponential decay math
-   - Trail shape generation and painting
-   - Shared cursor bounds helper
+To compare your custom work later, compare:
 
-2. `crates/editor/src/editor.rs`
-   - Registers the `smooth_cursor` module
-   - Stores per-selection smooth cursor animation state on `Editor`
+```sh
+main...smooth-cursor
+```
 
-3. `crates/editor/src/element.rs`
-   - Small integration layer between Zed's editor paint flow and the smooth
-     cursor module
-   - Cursor layout still lives here, but the animation engine does not
+On GitHub, open:
 
-4. `crates/editor/src/editor_settings.rs`
-   - Runtime `SmoothCursorSettings`
-   - Default timing and trail values
+```text
+https://github.com/NVSRahul/zedmod/compare/main...smooth-cursor
+```
 
-5. `crates/settings_content/src/editor.rs`
-   - JSON schema for `smooth_cursor`
+## What Was Changed
 
-6. `crates/settings/src/vscode_import.rs`
-   - Keeps the new setting wired through settings import handling
+No new crate was created. The feature is kept inside the existing Zed editor
+crate so the build stays close to upstream.
 
-7. `crates/settings_ui/src/page_data.rs`
-   - Settings UI entries for smooth cursor options
+Runtime files:
 
-8. `assets/settings/default.json`
-   - Default user-visible `smooth_cursor` values
+- `crates/editor/src/smooth_cursor.rs`
+  The smooth cursor engine. This owns the animation state, corner easing,
+  trail shape, shader-inspired fade math, and painting.
 
-## Runtime Design
+- `crates/editor/src/editor.rs`
+  Registers the module and stores smooth cursor state per editor selection.
 
-The implementation keeps Zed's real cursor position exact and only animates the
-painted local cursor.
+- `crates/editor/src/element.rs`
+  Connects Zed's normal cursor layout and paint flow to the smooth cursor
+  engine.
 
-High-level flow:
+- `crates/editor/src/editor_settings.rs`
+  Runtime settings and default values for smooth cursor behavior.
 
-1. Compute the real cursor target bounds in Zed's existing layout pass.
-2. Store one smooth-cursor animation state per local selection ID.
-3. Retarget the animation state every frame.
-4. Move the four cursor corners independently using Kitty-style fast/slow
+- `crates/settings_content/src/editor.rs`
+  User settings schema for `smooth_cursor`.
+
+- `crates/settings/src/vscode_import.rs`
+  Keeps settings import code compiling with the extra editor setting.
+
+- `crates/settings_ui/src/page_data.rs`
+  Adds smooth cursor settings to the settings UI.
+
+- `assets/settings/default.json`
+  Adds default `smooth_cursor` values.
+
+Support files:
+
+- `.github/workflows/custom-zed-macos-aarch64.yml`
+  Builds the macOS Apple Silicon app and uploads artifacts.
+
+- `.github/workflows/sync-upstream.yml`
+  Tries to merge latest upstream Zed into `smooth-cursor`.
+
+- `script/install-downloaded-zed-mac`
+  Installs a downloaded `.dmg`, `.app.tar.gz`, or `.app`.
+
+- `script/sync-upstream-local`
+  Local helper for syncing upstream manually.
+
+- `script/kitty_cursor_patch/README.md`
+  Archive note only. It is not used by the build.
+
+## Cursor Design
+
+Zed's real cursor position is never delayed. Only the painted local cursor is
+animated.
+
+The animation works like this:
+
+1. Zed computes the real cursor rectangle as usual.
+2. The smooth cursor state keeps four animated corners for the painted cursor.
+3. Each corner moves toward the real cursor using Kitty-style fast and slow
    exponential decay.
-5. Paint the smear trail first, then paint the real cursor quad on top.
+4. The leading edge moves faster than the trailing edge.
+5. The smear trail is painted first.
+6. The real cursor is painted on top, so editing behavior stays exact.
 
-Why this structure is cleaner:
+The newest trail fade is based on `cursor_smear_fade_final_blaze.glsl`.
 
-- The animation math is isolated in one module instead of being embedded into
-  `element.rs`.
-- Future upstream rebases mostly touch one new file and a few call sites.
-- The settings layer now matches the actual runtime model.
+The Rust port keeps the important parts:
 
-## Settings Surface
+- strong head, softer tail
+- fade based on animation progress
+- fade based on distance from the live cursor
+- direction-aware hex-like smear shape
+- layered halo, body, and core paint
 
-The smooth cursor is configured through `smooth_cursor` in user settings:
+It does not copy shader colors directly. Zed still uses the current theme cursor
+color, then derives the trail colors from that.
+
+## Settings
+
+Example:
 
 ```json
 {
@@ -90,29 +127,27 @@ The smooth cursor is configured through `smooth_cursor` in user settings:
 }
 ```
 
-Meaning:
+Fields:
 
 - `enabled`
   Turns smooth cursor rendering on or off.
 
 - `trail`
-  Enables or disables the smear trail.
+  Turns the smear trail on or off.
 
 - `smooth_time`
-  Slow decay time in milliseconds for the trailing edge.
+  Slow trailing-edge smoothing time in milliseconds.
 
 - `leading_smooth_time`
-  Fast decay time in milliseconds for the leading edge.
+  Faster leading-edge smoothing time in milliseconds.
 
 - `trail_opacity`
-  Trail alpha multiplier from `0.0` to `1.0`.
+  Trail opacity multiplier from `0.0` to `1.0`.
 
 - `trail_min_distance`
-  Minimum cursor travel distance before painting the smear trail.
+  Minimum movement distance before the trail appears.
 
-## Recommended Profiles
-
-### Cleaner Neovim-like motion
+Cleaner profile:
 
 ```json
 {
@@ -127,7 +162,7 @@ Meaning:
 }
 ```
 
-### Kitty-like smear
+Smear profile:
 
 ```json
 {
@@ -142,9 +177,9 @@ Meaning:
 }
 ```
 
-## Local Development
+## Build Locally
 
-### Dev run
+Dev run:
 
 ```sh
 mkdir -p ~/Desktop/test-project-dir
@@ -152,137 +187,113 @@ cd /path/to/zed-main
 cargo run ~/Desktop/test-project-dir
 ```
 
-### Optimized run
+Optimized run:
 
 ```sh
 cd /path/to/zed-main
 cargo run --release ~/Desktop/test-project-dir
 ```
 
-### Bundle a macOS app
+macOS bundle:
 
 ```sh
 cd /path/to/zed-main
 ./script/bundle-mac aarch64-apple-darwin
 ```
 
-Outputs:
+Local outputs:
 
 - `target/aarch64-apple-darwin/release/Zed-aarch64.dmg`
 - `target/aarch64-apple-darwin/release/Zed-aarch64.app.tar.gz`
 
-### Install a downloaded or locally produced build
+Install a downloaded build:
 
 ```sh
 script/install-downloaded-zed-mac /path/to/Zed-aarch64.dmg
 ```
 
-Also supports:
+The installer also accepts:
 
 ```sh
 script/install-downloaded-zed-mac /path/to/Zed-aarch64.app.tar.gz
 script/install-downloaded-zed-mac /path/to/Zed.app
+script/install-downloaded-zed-mac "/path/to/Zed Dev.app"
 ```
 
-## GitHub Actions
+## GitHub Builds
 
-### Build workflow
+The build workflow is:
 
-File:
+```text
+custom_zed_macos_aarch64
+```
 
-- `.github/workflows/custom-zed-macos-aarch64.yml`
+Artifacts are not in GitHub Releases. They are inside the workflow run.
 
-It:
+To download:
 
-1. Builds the Apple Silicon macOS bundle
-2. Packs the `.app` dynamically so `Zed.app` and `Zed Dev.app` both work
-3. Uploads:
-   - `Zed-aarch64.dmg`
-   - `Zed-aarch64.app.tar.gz`
+1. Open the repo on GitHub.
+2. Open `Actions`.
+3. Open a successful `custom_zed_macos_aarch64` run.
+4. Scroll to `Artifacts`.
+5. Download `Zed-aarch64.dmg` or `Zed-aarch64.app.tar.gz`.
 
-### Where to download artifacts
+## Future Updates
 
-Artifacts are in the **Actions run**, not in GitHub Releases.
-
-Open:
-
-1. GitHub repo
-2. `Actions`
-3. The successful `custom_zed_macos_aarch64` run
-4. `Artifacts`
-
-Download either:
-
-- `Zed-aarch64.dmg`
-- `Zed-aarch64.app.tar.gz`
-
-### Upstream sync workflow
-
-File:
-
-- `.github/workflows/sync-upstream.yml`
-
-It:
-
-1. Fetches `zed-industries/zed` `main`
-2. Attempts to merge it into `smooth-cursor`
-3. Creates or updates `auto/upstream-sync` if the merge is clean
-
-## Kitty Reference Files
-
-The folder below is archival only:
-
-- `script/kitty_cursor_patch/README.md`
-
-Do not treat it as live automation. It only points to the original Kitty source
-files that informed the port.
-
-## Future Update Workflow
-
-When upstream Zed changes:
-
-1. Sync upstream into `smooth-cursor`
-2. Re-read these files before editing:
-   - `crates/editor/src/smooth_cursor.rs`
-   - `crates/editor/src/editor.rs`
-   - `crates/editor/src/element.rs`
-   - `crates/editor/src/editor_settings.rs`
-   - `crates/settings_content/src/editor.rs`
-   - `crates/settings_ui/src/page_data.rs`
-   - `assets/settings/default.json`
-3. Adapt the integration, not the entire renderer
-4. Run validation
-
-Useful commands:
+Normal update flow:
 
 ```sh
-git config --global rerere.enabled true
 git fetch upstream
 git checkout smooth-cursor
-git rebase upstream/main
+git merge upstream/main
 cargo check -p editor
 cargo check -p settings_ui
+git push origin smooth-cursor
 ```
+
+After `smooth-cursor` is updated, keep `main` clean:
+
+```sh
+git push origin upstream/main:main
+```
+
+If GitHub rejects that because `main` moved differently, use a protected/manual
+update on GitHub or push with lease only when you are sure `main` should be
+exactly upstream Zed.
+
+## Conflict Rule
+
+When upstream touches one of the custom files, re-read the upstream version
+first. Then re-apply only the small smooth cursor integration.
+
+Most important files to check during conflicts:
+
+- `crates/editor/src/smooth_cursor.rs`
+- `crates/editor/src/editor.rs`
+- `crates/editor/src/element.rs`
+- `crates/editor/src/editor_settings.rs`
+- `crates/settings_content/src/editor.rs`
+- `crates/settings/src/vscode_import.rs`
+- `crates/settings_ui/src/page_data.rs`
+- `assets/settings/default.json`
+
+Keep broad patch scripts out of the live workflow. The clean shape is one cursor
+module plus small Zed integration hooks.
 
 ## Validation
 
-Recommended checks after cursor changes:
+Run:
 
 ```sh
+cargo fmt -p editor -p settings -p settings_content -p settings_ui
 cargo check -p editor
 cargo check -p settings_ui
 ```
 
-Cursor behavior to test:
+Manual cursor checks:
 
-1. Short arrow-key moves
-2. Held movement keys
-3. Long jumps like `gg`, `G`, search navigation, page moves
-4. Scrolling while the cursor is still animating
-5. Vim normal/insert mode shape changes
-
-## Maintenance Rule
-
-If upstream changes a customized file, read the new upstream version first and
-then adapt the small integration surface. Do not re-introduce broad patch
-scripts or large inlined cursor logic into `element.rs`.
+- short arrow-key moves
+- held movement keys
+- long jumps like `gg`, `G`, search, and page movement
+- scrolling while the cursor is animating
+- Vim normal and insert cursor shape changes

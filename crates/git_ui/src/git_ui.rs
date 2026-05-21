@@ -17,7 +17,7 @@ use git::{
 };
 use gpui::{
     App, ClipboardItem, Context, DismissEvent, Entity, EventEmitter, FocusHandle, Focusable,
-    SharedString, Subscription, Task, Window,
+    SharedString, Subscription, Task, TaskExt, Window,
 };
 use menu::{Cancel, Confirm};
 use project::git_store::Repository;
@@ -39,6 +39,7 @@ pub mod file_diff_view;
 pub mod git_panel;
 mod git_panel_settings;
 pub mod git_picker;
+mod git_runtime_diagnostics;
 pub mod multi_diff_view;
 pub mod picker_prompt;
 pub mod project_diff;
