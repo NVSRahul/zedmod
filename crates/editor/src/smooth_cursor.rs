@@ -65,9 +65,8 @@ impl SmoothCursorAnimationState {
         // the Kitty-inspired effect.
         if self.target_bounds != bounds {
             let target_corners = bounds_corners(bounds);
-            self.peak_distance = max_corner_distance(&self.corners, &target_corners)
-                .max(bounds.size.height.as_f32())
-                .max(TRAIL_MIN_PEAK_DISTANCE_PX);
+            self.peak_distance =
+                max_corner_distance(&self.corners, &target_corners).max(TRAIL_MIN_PEAK_DISTANCE_PX);
         }
         self.target_bounds = bounds;
     }
@@ -158,11 +157,21 @@ impl SmoothCursorAnimationState {
                     1.0
                 };
                 let time_fade = 1.0 - progress * progress;
-                let visibility_ratio = (remaining_distance
-                    / (self.target_bounds.size.height.as_f32() * 0.75))
-                    .clamp(0.0, 1.0);
-                let body_alpha =
-                    settings.trail_opacity.clamp(0.0, 1.0) * visibility_ratio * time_fade;
+                let cursor_extent = self
+                    .target_bounds
+                    .size
+                    .width
+                    .as_f32()
+                    .max(self.target_bounds.size.height.as_f32())
+                    .max(1.0);
+                let distance_fade = (remaining_distance / (cursor_extent * 0.55).max(1.0))
+                    .clamp(0.0, 1.0)
+                    .sqrt();
+                let motion_fade = (motion_distance / (cursor_extent * 0.45).max(1.0))
+                    .clamp(0.0, 1.0)
+                    .sqrt();
+                let spatial_fade = distance_fade.max(motion_fade * 0.35);
+                let body_alpha = settings.trail_opacity.clamp(0.0, 1.0) * spatial_fade * time_fade;
 
                 if body_alpha > 0.01 && motion_distance > settings.trail_min_distance {
                     let selector = (
@@ -199,7 +208,7 @@ impl SmoothCursorAnimationState {
                     let inner_points = scale_polygon(
                         &outer_points,
                         target_center,
-                        (1.0 - 0.18 * visibility_ratio).clamp(0.72, 0.92),
+                        (1.0 - 0.18 * spatial_fade).clamp(0.72, 0.92),
                     );
 
                     let tail_color = Hsla {
@@ -231,7 +240,7 @@ impl SmoothCursorAnimationState {
                         gradient_angle: gradient_angle(motion),
                         body_alpha,
                         halo_alpha: body_alpha * 0.45,
-                        core_alpha: body_alpha * (0.35 + 0.4 * visibility_ratio),
+                        core_alpha: body_alpha * (0.45 + 0.35 * spatial_fade),
                     })
                 } else {
                     None
@@ -269,7 +278,7 @@ impl SmoothCursorTrail {
             &outer_points,
             linear_gradient(
                 self.gradient_angle,
-                linear_color_stop(self.tail_color.opacity(self.body_alpha * 0.18), 0.0),
+                linear_color_stop(self.tail_color.opacity(self.body_alpha * 0.45), 0.0),
                 linear_color_stop(self.head_color.opacity(self.body_alpha), 1.0),
             ),
             window,
